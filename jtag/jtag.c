@@ -92,6 +92,9 @@ void jtag_set_freq(jtag_t *j, float freq_hz) {
 }
 
 // Low-level: clock out N bits with packed TMS+TDI data, capture TDO
+// PIO program stops after exactly N clocks (parks at 'done' instruction).
+// Autopush at 32 bits provides full RX words; remaining bits are manually
+// flushed from the ISR after the PIO parks.
 static void jtag_shift_bits(jtag_t *j, const uint32_t *tms_tdi_words,
                             uint32_t *tdo_words, uint32_t num_bits) {
     if (num_bits == 0) return;
@@ -113,24 +116,41 @@ static void jtag_shift_bits(jtag_t *j, const uint32_t *tms_tdi_words,
 
     pio_sm_set_enabled(pio, sm, true);
 
+    // TX: 2 bits per clock → ceil(num_bits/16) words needed
+    // RX: autopush at 32 bits → num_bits/32 full words, plus remainder in ISR
     uint32_t tx_words = (num_bits + 15) / 16;
-    uint32_t rx_words = (num_bits + 31) / 32;
+    uint32_t full_rx_words = num_bits / 32;
+    uint32_t remaining_bits = num_bits % 32;
 
     uint32_t tx_sent = 0, rx_recv = 0;
-    while (tx_sent < tx_words || rx_recv < rx_words) {
+    while (tx_sent < tx_words || rx_recv < full_rx_words) {
         if (tx_sent < tx_words && !pio_sm_is_tx_fifo_full(pio, sm)) {
             pio_sm_put(pio, sm, tms_tdi_words[tx_sent++]);
         }
-        if (rx_recv < rx_words && !pio_sm_is_rx_fifo_empty(pio, sm)) {
+        if (rx_recv < full_rx_words && !pio_sm_is_rx_fifo_empty(pio, sm)) {
             uint32_t val = pio_sm_get(pio, sm);
-            if (tdo_words) {
-                tdo_words[rx_recv] = val;
-            }
+            if (tdo_words) tdo_words[rx_recv] = val;
             rx_recv++;
         }
     }
 
-    pio_sm_set_enabled(pio, sm, false);
+    if (remaining_bits > 0) {
+        // Wait for PIO to finish remaining clocks and park at 'done'
+        uint32_t wait_us = (uint32_t)(remaining_bits * 1000000.0f / j->freq_hz) + 10;
+        busy_wait_us(wait_us);
+        pio_sm_set_enabled(pio, sm, false);
+
+        // Flush partial ISR to RX FIFO
+        pio_sm_exec(pio, sm, pio_encode_push(false, false));
+        if (!pio_sm_is_rx_fifo_empty(pio, sm)) {
+            uint32_t val = pio_sm_get(pio, sm);
+            // ISR shifted right: bits are in upper positions, right-justify
+            val >>= (32 - remaining_bits);
+            if (tdo_words) tdo_words[rx_recv] = val;
+        }
+    } else {
+        pio_sm_set_enabled(pio, sm, false);
+    }
 }
 
 void jtag_reset(jtag_t *j) {

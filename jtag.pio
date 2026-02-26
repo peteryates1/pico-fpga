@@ -19,12 +19,12 @@
 .program jtag_io
 .side_set 1
 
-.wrap_target
-entry:
+loop:
     out pins, 2    side 0 [1]   ; Drive TMS+TDI, TCK low (2 cycles low)
     in pins, 1     side 1       ; Sample TDO on TCK rising edge
-    jmp x-- entry  side 1       ; Loop while bits remain, TCK stays high
-.wrap
+    jmp x-- loop   side 1       ; Loop while bits remain, TCK stays high
+public done:
+    jmp done       side 0       ; Park with TCK low (no extra clocks)
 
 % c-sdk {
 #include "hardware/clocks.h"
