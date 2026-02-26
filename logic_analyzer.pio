@@ -1,0 +1,30 @@
+.program logic_capture
+
+; Continuously sample all 32 GPIO pins into the RX FIFO.
+; Autopush at 32 bits means each PIO clock cycle pushes one full snapshot.
+; DMA drains the FIFO into a RAM capture buffer.
+; Clock divider controls sample rate (set via SUMP SET_DIVIDER command).
+
+.wrap_target
+    in pins, 32
+.wrap
+
+% c-sdk {
+static inline void logic_capture_program_init(PIO pio, uint sm, uint offset, float div) {
+    pio_sm_config c = logic_capture_program_get_default_config(offset);
+
+    // Sample starting at GPIO 0
+    sm_config_set_in_pins(&c, 0);
+
+    // Shift ISR to the right, autopush every 32 bits
+    sm_config_set_in_shift(&c, true, true, 32);
+
+    // Join FIFOs for deeper RX buffer (8 entries instead of 4)
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+
+    // Set clock divider for sample rate control
+    sm_config_set_clkdiv(&c, div);
+
+    pio_sm_init(pio, sm, offset, &c);
+}
+%}
