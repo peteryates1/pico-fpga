@@ -48,6 +48,7 @@ target_compile_definitions(pico_fpga PRIVATE
 
 target_link_libraries(pico_fpga
     pico_stdlib
+    pico_unique_id
     hardware_pio
     hardware_dma
     hardware_uart
