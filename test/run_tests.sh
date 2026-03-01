@@ -247,29 +247,7 @@ cmd "PIN 2 RELEASE" > /dev/null
 cmd "PIN 3 RELEASE" > /dev/null
 
 # -----------------------------------------------------------
-echo -e "\n${YELLOW}[6] JTAG (error paths)${NC}"
-# -----------------------------------------------------------
-
-result=$(cmd "JTAG INIT")
-assert_prefix "JTAG INIT no pins" "ERROR:" "$result"
-
-# Non-consecutive TMS/TDI
-cmd "PIN 2 FUNC JTAG_TCK" > /dev/null
-cmd "PIN 3 FUNC JTAG_TMS" > /dev/null
-cmd "PIN 5 FUNC JTAG_TDI" > /dev/null
-cmd "PIN 6 FUNC JTAG_TDO" > /dev/null
-result=$(cmd "JTAG INIT")
-assert_prefix "JTAG non-consecutive TMS/TDI" "ERROR:" "$result"
-cmd "PIN 2 RELEASE" > /dev/null
-cmd "PIN 3 RELEASE" > /dev/null
-cmd "PIN 5 RELEASE" > /dev/null
-cmd "PIN 6 RELEASE" > /dev/null
-
-result=$(cmd "JTAG DETECT")
-assert_prefix "JTAG DETECT without init" "ERROR:" "$result"
-
-# -----------------------------------------------------------
-echo -e "\n${YELLOW}[7] RESET cleans everything${NC}"
+echo -e "\n${YELLOW}[6] RESET cleans everything${NC}"
 # -----------------------------------------------------------
 
 cmd "PIN 0 FUNC LA" > /dev/null

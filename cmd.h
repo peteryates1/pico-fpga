@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define CMD_MAX_LINE   512
+#define CMD_MAX_LINE   2048
 #define CMD_MAX_ARGS   16
 
 typedef struct {

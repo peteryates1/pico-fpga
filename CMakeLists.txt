@@ -22,23 +22,14 @@ add_executable(pico_fpga
     la.c
     uart/pio_uart.c
     uart/hw_uart.c
-    jtag/jtag.c
-    jtag/jtag_tap.c
-    jtag/svf_player.c
-    jtag/fpga_xilinx.c
-    jtag/fpga_altera.c
-    jtag/fpga_lattice.c
 )
 
 pico_generate_pio_header(pico_fpga ${CMAKE_CURRENT_LIST_DIR}/logic_analyzer.pio)
 pico_generate_pio_header(pico_fpga ${CMAKE_CURRENT_LIST_DIR}/uart_tx.pio)
 pico_generate_pio_header(pico_fpga ${CMAKE_CURRENT_LIST_DIR}/uart_rx.pio)
-pico_generate_pio_header(pico_fpga ${CMAKE_CURRENT_LIST_DIR}/jtag.pio)
-
 target_include_directories(pico_fpga PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/uart
-    ${CMAKE_CURRENT_LIST_DIR}/jtag
 )
 
 target_compile_definitions(pico_fpga PRIVATE

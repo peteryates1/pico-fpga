@@ -8,7 +8,6 @@
 #include "la.h"
 #include "uart/pio_uart.h"
 #include "uart/hw_uart.h"
-#include "jtag/jtag.h"
 
 #define VERSION "1.0"
 
@@ -33,7 +32,6 @@ static bool cmd_status(int argc, char **argv) {
 static bool cmd_reset(int argc, char **argv) {
     // Deinit all modules
     la_deinit();
-    jtag_deinit(&jtag_instance);
     // Note: UART deinit would go here for each active UART
 
     // Release all pins
@@ -56,7 +54,6 @@ static const cmd_entry_t command_table[] = {
     { "GPIO",   cmd_gpio },
     { "LA",     cmd_la },
     { "UART",   cmd_uart },
-    { "JTAG",   cmd_jtag },
     { NULL,     NULL }
 };
 

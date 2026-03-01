@@ -13,10 +13,6 @@ typedef enum {
     PIN_FUNC_LA,
     PIN_FUNC_UART_TX,
     PIN_FUNC_UART_RX,
-    PIN_FUNC_JTAG_TCK,
-    PIN_FUNC_JTAG_TMS,
-    PIN_FUNC_JTAG_TDI,
-    PIN_FUNC_JTAG_TDO,
 } pin_func_t;
 
 // Pull configuration

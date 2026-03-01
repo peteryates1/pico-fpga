@@ -7,7 +7,7 @@
 // Capture buffer: 50K samples × 4 bytes = 200KB
 #define LA_BUFFER_SIZE 50000
 
-// Shared buffer (also used as JTAG bitstream staging when LA inactive)
+// Capture buffer storage
 extern uint32_t la_capture_buffer[LA_BUFFER_SIZE];
 
 typedef enum {

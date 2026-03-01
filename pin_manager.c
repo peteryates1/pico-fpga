@@ -48,7 +48,7 @@ bool pin_assign(uint gpio, pin_func_t func, pin_pull_t pull, int owner_id) {
         gpio_set_dir(gpio, GPIO_OUT);
         gpio_put(gpio, 0);
     }
-    // For LA, UART, JTAG: GPIO hardware setup is done by the module at INIT time
+    // For LA, UART: GPIO hardware setup is done by the module at INIT time
 
     return true;
 }
@@ -97,10 +97,6 @@ const char *pin_func_name(pin_func_t func) {
     case PIN_FUNC_LA:       return "LA";
     case PIN_FUNC_UART_TX:  return "UART_TX";
     case PIN_FUNC_UART_RX:  return "UART_RX";
-    case PIN_FUNC_JTAG_TCK: return "JTAG_TCK";
-    case PIN_FUNC_JTAG_TMS: return "JTAG_TMS";
-    case PIN_FUNC_JTAG_TDI: return "JTAG_TDI";
-    case PIN_FUNC_JTAG_TDO: return "JTAG_TDO";
     default:                return "?";
     }
 }
@@ -217,14 +213,6 @@ bool cmd_pin(int argc, char **argv) {
         owner_id = parse_uart_id(argv[4]);
         if (owner_id < 0) { cmd_error("invalid UART id"); return true; }
         func = PIN_FUNC_UART_RX;
-    } else if (strcasecmp(func_str, "JTAG_TCK") == 0) {
-        func = PIN_FUNC_JTAG_TCK;
-    } else if (strcasecmp(func_str, "JTAG_TMS") == 0) {
-        func = PIN_FUNC_JTAG_TMS;
-    } else if (strcasecmp(func_str, "JTAG_TDI") == 0) {
-        func = PIN_FUNC_JTAG_TDI;
-    } else if (strcasecmp(func_str, "JTAG_TDO") == 0) {
-        func = PIN_FUNC_JTAG_TDO;
     } else {
         cmd_error("unknown function");
         return true;
