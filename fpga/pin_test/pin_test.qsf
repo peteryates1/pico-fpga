@@ -1,0 +1,52 @@
+set_global_assignment -name FAMILY "Cyclone IV GX"
+set_global_assignment -name DEVICE EP4CGX150DF27I7
+set_global_assignment -name TOP_LEVEL_ENTITY pin_test
+set_global_assignment -name VERILOG_FILE pin_test.v
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name SDC_FILE pin_test.sdc
+
+# Clock
+set_location_assignment PIN_B14 -to clk_in
+
+# UART (DB_FPGA CP2102N)
+set_location_assignment PIN_AD20 -to ser_txd
+set_location_assignment PIN_AE21 -to ser_rxd
+
+# Onboard LEDs (active low)
+set_location_assignment PIN_A25 -to led[0]
+set_location_assignment PIN_A24 -to led[1]
+
+# JP1 GPIO header — matches schematic pin order (jp1[0]=pin3, jp1[15]=pin18)
+# Physical wiring to Pico is reversed: Pico GP0→JP1 pin17, GP15→JP1 pin4
+set_location_assignment PIN_AD4 -to jp1[0]
+set_location_assignment PIN_AC4 -to jp1[1]
+set_location_assignment PIN_AE3 -to jp1[2]
+set_location_assignment PIN_AD3 -to jp1[3]
+set_location_assignment PIN_AF5 -to jp1[4]
+set_location_assignment PIN_AF4 -to jp1[5]
+set_location_assignment PIN_AD6 -to jp1[6]
+set_location_assignment PIN_AD5 -to jp1[7]
+set_location_assignment PIN_AE6 -to jp1[8]
+set_location_assignment PIN_AE5 -to jp1[9]
+set_location_assignment PIN_AF6 -to jp1[10]
+set_location_assignment PIN_AE7 -to jp1[11]
+set_location_assignment PIN_AF8 -to jp1[12]
+set_location_assignment PIN_AF7 -to jp1[13]
+set_location_assignment PIN_AF9 -to jp1[14]
+set_location_assignment PIN_AE9 -to jp1[15]
+
+# All JP1 pins 3.3V LVCMOS
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to jp1[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to clk_in
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to ser_txd
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to ser_rxd
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to led[*]
+
+# Weak pull-ups on JP1 inputs (match 4.7K on JP1[0:1])
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to jp1[*]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to ser_rxd
+
+# Unused pins as input tri-state
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_WEAK_PULLUP "AS INPUT TRI-STATED"
+
+set_global_assignment -name LAST_QUARTUS_VERSION "25.1std.0 Lite Edition"
