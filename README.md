@@ -8,7 +8,7 @@ making it straightforward to script from Python, shell, or an AI agent.
 
 **Capabilities:**
 - 4-channel PIO UART + 2 hardware UART instances
-- Logic analyzer: up to 125 Msps, 50K-sample capture buffer, all 32 GPIO pins
+- Logic analyzer: up to 125 Msps, 50K-sample buffer, triggered capture with pre/post context
 - GPIO read/write with pin conflict detection
 - Safe boot: all pins start as floating inputs
 
@@ -147,15 +147,47 @@ READ_ALL returns a 32-bit hex snapshot of all GPIOs (bit 0 = GPIO 0).
 ### LA — Logic Analyzer
 
 PIO-driven capture at up to 125 Msps. Each sample is a 32-bit snapshot of all
-GPIO pins. Buffer holds 50,000 samples (200 KB).
+GPIO pins. Two capture modes: immediate (linear buffer, 50K samples) and
+triggered (ring buffer, 8K samples with pre/post-trigger context).
+
+**Basic capture (immediate):**
 
 ```
 LA INIT                              → OK
 LA CAPTURE [samples] [divider]       → OK capturing
-LA STATUS                            → OK idle | OK capturing | OK done <count>
+LA STATUS                            → OK idle | capturing | done <count> | armed | triggered
 LA DATA [offset] [count]             → OK <count>\n<hex data>
 LA DEINIT                            → OK
 ```
+
+**Triggered capture:**
+
+```
+LA TRIGGER ADD LEVEL <pin> HIGH|LOW           → OK
+LA TRIGGER ADD EDGE <pin> RISING|FALLING      → OK
+LA TRIGGER ADD PATTERN <mask_hex> <val_hex>   → OK
+LA TRIGGER CLEAR                              → OK
+LA TRIGGER STATUS                             → OK <count> conditions: ...
+LA ARM [samples] [divider] [pre_pct]          → OK armed
+```
+
+**Trigger types:**
+
+| Type | Description |
+|---|---|
+| `LEVEL` | Pin must be HIGH or LOW |
+| `EDGE` | Pin must have a RISING or FALLING transition |
+| `PATTERN` | GPIO bits matching a mask must equal a value |
+
+Up to 4 conditions can be stacked (AND-combined — all must be true simultaneously).
+A single level or edge condition uses a dedicated PIO state machine for
+cycle-accurate triggering. Multiple conditions (or pattern type) use CPU
+polling in the main loop.
+
+**ARM defaults:** samples = 8192, divider = 1.0, pre_pct = 50.
+The `pre_pct` parameter controls what percentage of the buffer is captured
+before the trigger (0–100). For example, `LA ARM 1000 125 50` captures 500
+samples before and 500 after the trigger at 1 MHz.
 
 **Sample rate:** `125 MHz / divider`. Divider must be >= 1.0 (integer or float).
 
@@ -179,7 +211,24 @@ OK 16
 
 Each hex value is a GPIO snapshot: bit N = GPIO N.
 
-**Resources:** 1 PIO SM, 1 instruction word, 1 DMA channel.
+**Triggered capture example:**
+
+```
+PIN 2 FUNC OUTPUT                    → OK
+GPIO WRITE 2 0                       → OK
+LA INIT                              → OK
+LA TRIGGER ADD EDGE 2 RISING         → OK
+LA ARM 1000 125 50                   → OK armed
+LA STATUS                            → OK armed
+GPIO WRITE 2 1                       → OK       (fires trigger)
+LA STATUS                            → OK done 1000
+LA DATA 495 5                        → OK 5
+0300fffb 0300fffb 0300fffb 0300fffb 0300ffff
+```
+
+**Resources:** 1 PIO SM + 1 DMA channel (untriggered), or 2 PIO SMs + 1 DMA
+channel (single-condition triggered). Max triggered capture: 8192 samples (32 KB
+ring buffer, limited by RP2040 DMA ring_size field).
 
 ---
 
@@ -231,7 +280,8 @@ The allocator (`pio_alloc`) tracks usage across both blocks.
 
 | Module | SMs | Instructions | DMA | Notes |
 |---|---|---|---|---|
-| Logic analyzer | 1 | 1 | 1 | |
+| LA (untriggered) | 1 | 1 | 1 | |
+| LA (triggered) | 2 | 1 + 2–3 | 1 | Trigger SM uses 2 insn (level) or 3 (edge) |
 | PIO UART (each) | 2 | 11 (shared) | 0 | TX (4 insn) + RX (7 insn), ref-counted per PIO block |
 
 A single PIO block can host: LA + 1 PIO UART (1+2 = 3 SMs, 1+11 = 12 insn).
@@ -239,7 +289,7 @@ The RP2040 has 12 DMA channels total.
 
 ### Memory Layout
 
-- **Capture buffer:** 50,000 × 4 bytes = 200 KB.
+- **Capture buffer:** 50,000 x 4 bytes = 200 KB (linear mode). Triggered mode uses a 32 KB ring within this buffer.
 - **UART RX buffers:** 512 bytes per instance (6 instances max = 3 KB).
 - **Code + data:** ~75 KB.
 - **Total RP2040 SRAM:** 264 KB.
