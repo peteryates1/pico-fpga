@@ -84,7 +84,8 @@ int main(void) {
             }
         }
 
-        // Poll UART RX buffers
+        // Poll modules
+        la_poll();
         pio_uart_poll_all();
         hw_uart_poll_all();
     }
